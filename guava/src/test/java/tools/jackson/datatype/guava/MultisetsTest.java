@@ -254,6 +254,32 @@ public class MultisetsTest extends ModuleTestBase
         _verifyInvalid(a2q("[{'element':'abc','count':1.5}]"), "expected positive integer, got VALUE_NUMBER_FLOAT");
     }
 
+    @Test
+    public void testUnknownEntryProperties() throws Exception
+    {
+        final TypeReference<?>[] refs = new TypeReference<?>[] {
+                new TypeReference<HashMultiset<String>>() { },
+                new TypeReference<ImmutableMultiset<String>>() { } };
+        String json = a2q("[{'element':'a','extra':{'nested':[1,2]},'count':2},"
+                + "{'element':'b','count':1}]");
+        ObjectMapper strictMapper = builderWithModule()
+                .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .build();
+        ObjectMapper ignoringMapper = builderWithModule()
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .build();
+        for (TypeReference<?> ref : refs) {
+            MismatchedInputException e = assertThrows(MismatchedInputException.class,
+                    () -> strictMapper.readValue(json, ref));
+            verifyException(e, "extra");
+
+            Multiset<?> set = (Multiset<?>) ignoringMapper.readValue(json, ref);
+            assertEquals(3, set.size());
+            assertEquals(2, set.count("a"));
+            assertEquals(1, set.count("b"));
+        }
+    }
+
     static class SortedMultisetWrapper {
         @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
         public ImmutableSortedMultiset<Comparable<?>> values;

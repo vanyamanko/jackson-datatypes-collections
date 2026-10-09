@@ -28,12 +28,16 @@ abstract class GuavaImmutableMultisetDeserializer<T extends ImmutableMultiset<Ob
      */
     protected final int _maxSize;
 
+    private final MultisetEntryReader _entryReader;
+
     GuavaImmutableMultisetDeserializer(JavaType selfType,
             ValueDeserializer<?> deser, TypeDeserializer typeDeser,
             NullValueProvider nuller, Boolean unwrapSingle, boolean asEntries, int maxSize) {
         super(selfType, deser, typeDeser, nuller, unwrapSingle);
         _asEntries = asEntries;
         _maxSize = maxSize;
+        _entryReader = new MultisetEntryReader(this, deser, typeDeser,
+                nuller, _skipNullValues, maxSize);
     }
 
     @Override
@@ -44,7 +48,7 @@ abstract class GuavaImmutableMultisetDeserializer<T extends ImmutableMultiset<Ob
             return super._deserializeContents(p, ctxt);
         }
         ImmutableMultiset.Builder<Object> builder = (ImmutableMultiset.Builder<Object>) createBuilder();
-        _deserializeMultisetEntries(p, ctxt, builder::addCopies, _maxSize);
+        _entryReader.readEntries(p, ctxt, builder::addCopies);
         return _build(ctxt, builder);
     }
 
@@ -56,7 +60,7 @@ abstract class GuavaImmutableMultisetDeserializer<T extends ImmutableMultiset<Ob
             return super._deserializeFromSingleValue(p, ctxt);
         }
         ImmutableMultiset.Builder<Object> builder = (ImmutableMultiset.Builder<Object>) createBuilder();
-        _deserializeMultisetEntry(p, ctxt, builder::addCopies, 0, _maxSize);
+        _entryReader.readEntry(p, ctxt, builder::addCopies, 0);
         return _build(ctxt, builder);
     }
 
@@ -68,7 +72,7 @@ abstract class GuavaImmutableMultisetDeserializer<T extends ImmutableMultiset<Ob
             return (T) builder.build();
         } catch (ClassCastException | IllegalArgumentException e) {
             // sorted builder fails this way if elements are not mutually comparable
-            return _reportMultisetFailure(ctxt, e);
+            return MultisetEntryReader.reportFailure(this, ctxt, e);
         }
     }
 }

@@ -5,7 +5,6 @@ import com.google.common.collect.BoundType;
 import tools.jackson.core.Version;
 
 import tools.jackson.databind.JacksonModule;
-import tools.jackson.datatype.guava.deser.GuavaCollectionDeserializer;
 import tools.jackson.datatype.guava.ser.GuavaBeanSerializerModifier;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -40,6 +39,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class GuavaModule extends JacksonModule // can't use just SimpleModule, due to generic types
     implements java.io.Serializable
 {
+    /**
+     * Default maximum size (sum of element counts) of a
+     * {@link com.google.common.collect.Multiset} read from entries.
+     *
+     * This default can be overridden with {@link #configureMaxMultisetSize(int)}.
+     *
+     * @since 3.3
+     */
+    public final static int DEFAULT_MAX_MULTISET_SIZE = 10_000_000;
+
     private static final long serialVersionUID = 3L;
 
     private final String NAME = "GuavaModule";
@@ -74,9 +83,9 @@ public class GuavaModule extends JacksonModule // can't use just SimpleModule, d
      * since a single entry may specify a large count, a small input could otherwise
      * produce a huge {@code Multiset}.
      *<p>
-     * Default value is {@link GuavaCollectionDeserializer#DEFAULT_MAX_MULTISET_SIZE}.
+     * Default value is {@link #DEFAULT_MAX_MULTISET_SIZE}.
      */
-    protected int _cfgMaxMultisetSize = GuavaCollectionDeserializer.DEFAULT_MAX_MULTISET_SIZE;
+    protected int _cfgMaxMultisetSize = DEFAULT_MAX_MULTISET_SIZE;
 
     protected BoundType _defaultBoundType;
     

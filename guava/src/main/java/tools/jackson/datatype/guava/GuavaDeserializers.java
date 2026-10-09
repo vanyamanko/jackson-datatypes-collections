@@ -59,7 +59,7 @@ public class GuavaDeserializers
     }
 
     public GuavaDeserializers(BoundType defaultBoundType) {
-        this(defaultBoundType, true, GuavaCollectionDeserializer.DEFAULT_MAX_MULTISET_SIZE);
+        this(defaultBoundType, true, GuavaModule.DEFAULT_MAX_MULTISET_SIZE);
     }
 
     /**

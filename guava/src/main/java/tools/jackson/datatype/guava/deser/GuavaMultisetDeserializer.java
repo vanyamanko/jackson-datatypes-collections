@@ -9,6 +9,7 @@ import tools.jackson.databind.JavaType;
 import tools.jackson.databind.ValueDeserializer;
 import tools.jackson.databind.deser.NullValueProvider;
 import tools.jackson.databind.jsontype.TypeDeserializer;
+import tools.jackson.datatype.guava.GuavaModule;
 import tools.jackson.databind.util.AccessPattern;
 import tools.jackson.databind.util.ClassUtil;
 
@@ -32,10 +33,12 @@ abstract class GuavaMultisetDeserializer<T extends Multiset<Object>>
      */
     protected final int _maxSize;
 
+    private final MultisetEntryReader _entryReader;
+
     GuavaMultisetDeserializer(JavaType selfType,
             ValueDeserializer<?> deser, TypeDeserializer typeDeser,
             NullValueProvider nuller, Boolean unwrapSingle) {
-        this(selfType, deser, typeDeser, nuller, unwrapSingle, true, DEFAULT_MAX_MULTISET_SIZE);
+        this(selfType, deser, typeDeser, nuller, unwrapSingle, true, GuavaModule.DEFAULT_MAX_MULTISET_SIZE);
     }
 
     GuavaMultisetDeserializer(JavaType selfType,
@@ -44,6 +47,8 @@ abstract class GuavaMultisetDeserializer<T extends Multiset<Object>>
         super(selfType, deser, typeDeser, nuller, unwrapSingle);
         _asEntries = asEntries;
         _maxSize = maxSize;
+        _entryReader = new MultisetEntryReader(this, deser, typeDeser,
+                nuller, _skipNullValues, maxSize);
     }
 
     protected abstract T createMultiset();
@@ -65,7 +70,7 @@ abstract class GuavaMultisetDeserializer<T extends Multiset<Object>>
     {
         if (_asEntries) {
             T set = createMultiset();
-            _deserializeMultisetEntries(p, ctxt, set::add, _maxSize);
+            _entryReader.readEntries(p, ctxt, set::add);
             return set;
         }
         ValueDeserializer<?> valueDes = _valueDeserializer;
@@ -101,7 +106,7 @@ abstract class GuavaMultisetDeserializer<T extends Multiset<Object>>
     {
         if (_asEntries) {
             T set = createMultiset();
-            _deserializeMultisetEntry(p, ctxt, set::add, 0, _maxSize);
+            _entryReader.readEntry(p, ctxt, set::add, 0);
             return set;
         }
         return super._deserializeFromSingleValue(p, ctxt);
@@ -133,7 +138,7 @@ abstract class GuavaMultisetDeserializer<T extends Multiset<Object>>
                     ClassUtil.getTypeDescription(getValueType(ctxt)));
         } catch (ClassCastException e) {
             // elements of sorted Multiset not mutually comparable
-            _reportMultisetFailure(ctxt, e);
+            MultisetEntryReader.reportFailure(this, ctxt, e);
         }
     }
 }
